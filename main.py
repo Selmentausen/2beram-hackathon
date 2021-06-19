@@ -1,4 +1,5 @@
 import uuid
+import json
 from flask import Flask, request, jsonify
 from flask_restful import Api
 from data import db_session
@@ -16,6 +17,7 @@ api.add_resource(doctors.DoctorResource, '/api/doctors/<int:doctor_id>')
 
 symptom_checker_api_token = 'd3fYRiq6NPqM'
 
+
 @app.route('/api/symptoms/suggestions/<filter_word>')
 def get_suggestions(filter_word):
     response = get(f'https://lod.medlinx.online/terminology/api/v1/fhir/ValueSet/$expand?'
@@ -27,11 +29,12 @@ def get_suggestions(filter_word):
 
 @app.route('/api/symptoms/start_diagnosis', methods=['POST'])
 def start_diagnosis():
-    data = request.json()
+    data = request.get_json(force=True)
+    print(data)
     patient_resource = {
         'resourceType': 'Patient',
-        'gender': data['gender'],  # male/female
-        'birthDate': data['birthDate']  # string YYYY-MM-DD
+        'gender': data['patient']['gender'],  # male/female
+        'birthDate': data['patient']['birthDate']  # string YYYY-MM-DD
     }
     observation_resource = {
         'resource': data['answer'],  # suggestion answer json object
@@ -65,10 +68,9 @@ def start_diagnosis():
         }
     }
     response = post(f'https://lod.medlinx.online/cds/cds/1.0/cds-services/symptom-checker+{symptom_checker_api_token}',
-                    data=cds_request_json)
-    return response
-
-
+                    data=json.dumps(cds_request_json))
+    print(response)
+    return str(response)
 
 
 def main():
